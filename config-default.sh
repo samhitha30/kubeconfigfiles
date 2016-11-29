@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ZONE=${KUBE_AWS_ZONE:-us-west-2a}
+ZONE=${KUBE_AWS_ZONE:-ap-northeast-1a}
 MASTER_SIZE=${MASTER_SIZE:-}
 NODE_SIZE=${NODE_SIZE:-}
-NUM_NODES=${NUM_NODES:-4}
+NUM_NODES=${NUM_NODES:-2}
 
 # Dynamically set node sizes so that Heapster has enough space to run
 if [[ -z ${NODE_SIZE} ]]; then
@@ -32,7 +32,7 @@ fi
 
 # Dynamically set the master size by the number of nodes, these are guesses
 if [[ -z ${MASTER_SIZE} ]]; then
-  MASTER_SIZE="m3.medium"
+  MASTER_SIZE="t2.micro"
   if [[ "${NUM_NODES}" -gt "5" ]]; then
     suggested_master_size="m3.large"
   fi
@@ -55,7 +55,7 @@ fi
 #  AWS_S3_BUCKET=kubernetes-artifacts
 
 # Because regions are globally named, we want to create in a single region; default to us-east-1
-AWS_S3_REGION=${AWS_S3_REGION:-us-east-1}
+AWS_S3_REGION=${AWS_S3_REGION:-ap-northeast-1a}
 
 # Which docker storage mechanism to use.
 DOCKER_STORAGE=${DOCKER_STORAGE:-aufs}
@@ -65,7 +65,8 @@ EXTRA_DOCKER_OPTS="${EXTRA_DOCKER_OPTS:-}"
 
 INSTANCE_PREFIX="${KUBE_AWS_INSTANCE_PREFIX:-kubernetes}"
 CLUSTER_ID=${INSTANCE_PREFIX}
-VPC_NAME=${VPC_NAME:-kubernetes-vpc}
+VPC_NAME=${TokyoTrustVPC:-kubernetes-vpc}
+VPC_ID=vpc-f7303a92
 AWS_SSH_KEY=${AWS_SSH_KEY:-$HOME/.ssh/kube_aws_rsa}
 CONFIG_CONTEXT="${KUBE_CONFIG_CONTEXT:-aws_${INSTANCE_PREFIX}}"
 
@@ -78,16 +79,16 @@ MASTER_ROOT_DISK_TYPE="${MASTER_ROOT_DISK_TYPE:-gp2}"
 MASTER_ROOT_DISK_SIZE=${MASTER_ROOT_DISK_SIZE:-8}
 # The minions root EBS volume size (used to house Docker images)
 NODE_ROOT_DISK_TYPE="${NODE_ROOT_DISK_TYPE:-gp2}"
-NODE_ROOT_DISK_SIZE=${NODE_ROOT_DISK_SIZE:-32}
+NODE_ROOT_DISK_SIZE=${NODE_ROOT_DISK_SIZE:-30}
 
 MASTER_NAME="${INSTANCE_PREFIX}-master"
 MASTER_TAG="${INSTANCE_PREFIX}-master"
 NODE_TAG="${INSTANCE_PREFIX}-minion"
 NODE_SCOPES=""
-NON_MASQUERADE_CIDR="${NON_MASQUERADE_CIDR:-10.0.0.0/8}" # Traffic to IPs outside this range will use IP masquerade
-SERVICE_CLUSTER_IP_RANGE="${SERVICE_CLUSTER_IP_RANGE:-10.0.0.0/16}"  # formerly PORTAL_NET
-CLUSTER_IP_RANGE="${CLUSTER_IP_RANGE:-10.244.0.0/16}"
-MASTER_IP_RANGE="${MASTER_IP_RANGE:-10.246.0.0/24}"
+NON_MASQUERADE_CIDR="${NON_MASQUERADE_CIDR:-172.16.0.0/16}" # Traffic to IPs outside this range will use IP masquerade
+SERVICE_CLUSTER_IP_RANGE="${SERVICE_CLUSTER_IP_RANGE:-172.16.0.0/16}"  # formerly PORTAL_NET
+CLUSTER_IP_RANGE="${CLUSTER_IP_RANGE:-172.16.0.0/16}"
+MASTER_IP_RANGE="${MASTER_IP_RANGE:-172.16.0.0/16}"
 SSH_CIDR="${SSH_CIDR:-0.0.0.0/0}" # IP to restrict ssh access to nodes/master
 HTTP_API_CIDR="${HTTP_API_CIDR:-0.0.0.0/0}" # IP to restrict HTTP API access
 # If set to an Elastic IP address, the master instance will be associated with this IP.
@@ -118,7 +119,7 @@ fi
 
 # Optional: Install cluster DNS.
 ENABLE_CLUSTER_DNS="${KUBE_ENABLE_CLUSTER_DNS:-true}"
-DNS_SERVER_IP="${DNS_SERVER_IP:-10.0.0.10}"
+DNS_SERVER_IP="${DNS_SERVER_IP:-172.16.0.0}"
 DNS_DOMAIN="cluster.local"
 
 # Optional: Enable DNS horizontal autoscaler
@@ -158,7 +159,7 @@ NETWORK_PROVIDER="${NETWORK_PROVIDER:-kubenet}" # kubenet, opencontrail, flannel
 # OpenContrail networking plugin specific settings
 OPENCONTRAIL_TAG="${OPENCONTRAIL_TAG:-R2.20}"
 OPENCONTRAIL_KUBERNETES_TAG="${OPENCONTRAIL_KUBERNETES_TAG:-master}"
-OPENCONTRAIL_PUBLIC_SUBNET="${OPENCONTRAIL_PUBLIC_SUBNET:-10.1.0.0/16}"
+OPENCONTRAIL_PUBLIC_SUBNET="${OPENCONTRAIL_PUBLIC_SUBNET:-172.16.1.0/24}"
 
 # Optional: if set to true, kube-up will configure the cluster to run e2e tests.
 E2E_STORAGE_TEST_ENVIRONMENT=${KUBE_E2E_STORAGE_TEST_ENVIRONMENT:-false}

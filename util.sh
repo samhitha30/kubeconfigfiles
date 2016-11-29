@@ -24,7 +24,7 @@
 #   KUBE_SUBNET_CIDR=172.20.1.0/24
 #     Override the default subnet CIDR; useful if you want to create
 #     a second subnet.  The default subnet is 172.20.0.0/24.  The VPC
-#     is created with 172.20.0.0/16; you must pick a sub-CIDR of that.
+#     is created with 172.16.0.0/16; you must pick a sub-CIDR of that.
 # Use the config file specified in $KUBE_CONFIG_FILE, or default to
 # config-default.sh.
 KUBE_ROOT=$(dirname "${BASH_SOURCE}")/../..
@@ -88,17 +88,17 @@ export AWS_DEFAULT_REGION=${AWS_REGION}
 export AWS_DEFAULT_OUTPUT=text
 AWS_CMD="aws ec2"
 AWS_ASG_CMD="aws autoscaling"
-VPC_CIDR_BASE=${KUBE_VPC_CIDR_BASE:-172.20}
-MASTER_IP_SUFFIX=.9
+VPC_CIDR_BASE=${KUBE_VPC_CIDR_BASE:-172.16}
+----MASTER_IP_SUFFIX=.9
 VPC_CIDR=${VPC_CIDR_BASE}.0.0/16
 SUBNET_CIDR=${VPC_CIDR_BASE}.0.0/24
-if [[ -n "${KUBE_SUBNET_CIDR:-}" ]]; then
-echo "Using subnet CIDR override: ${KUBE_SUBNET_CIDR}"
-  SUBNET_CIDR=${KUBE_SUBNET_CIDR}
-fi
-if [[ -z "${MASTER_INTERNAL_IP-}" ]]; then
-  MASTER_INTERNAL_IP="${SUBNET_CIDR%.*}${MASTER_IP_SUFFIX}"
-fi
+#if [[ -n "${KUBE_SUBNET_CIDR:-}" ]]; then
+#echo "Using subnet CIDR override: ${KUBE_SUBNET_CIDR}"
+ # SUBNET_CIDR=${KUBE_SUBNET_CIDR}
+#fi
+#if [[ -z "${MASTER_INTERNAL_IP-}" ]]; then
+ # MASTER_INTERNAL_IP="${SUBNET_CIDR%.*}${MASTER_IP_SUFFIX}"
+#fi
 MASTER_SG_NAME="kubernetes-master-${CLUSTER_ID}"
 NODE_SG_NAME="kubernetes-minion-${CLUSTER_ID}"
 IAM_PROFILE_MASTER="kubernetes-master-${CLUSTER_ID}-${VPC_NAME}"
@@ -118,14 +118,15 @@ fi
 function get_vpc_id {
 $AWS_CMD describe-vpcs \
            --filters Name=tag:Name,Values=${VPC_NAME} \
-                     Name=tag:KubernetesCluster,Values=${CLUSTER_ID} \
+                    # Name=tag:KubernetesCluster,Values=${CLUSTER_ID} \
            --query Vpcs[].VpcId
 }
 function get_subnet_id {
 local vpc_id=$1
 local az=$2
 $AWS_CMD describe-subnets \
-           --filters Name=tag:KubernetesCluster,Values=${CLUSTER_ID} \
+           --filters 
+	   #Name=tag:KubernetesCluster,Values=${CLUSTER_ID} \
                      Name=availabilityZone,Values=${az} \
                      Name=vpc-id,Values=${vpc_id} \
            --query Subnets[].SubnetId
@@ -146,7 +147,7 @@ local tagName=$1
 $AWS_CMD describe-instances \
     --filters Name=tag:Name,Values=${tagName} \
               Name=instance-state-name,Values=running \
-              Name=tag:KubernetesCluster,Values=${CLUSTER_ID} \
+              #Name=tag:KubernetesCluster,Values=${CLUSTER_ID} \
     --query Reservations[].Instances[].InstanceId
 }
 function get_instance_public_ip {
@@ -167,7 +168,7 @@ local name=$1
 $AWS_CMD describe-security-groups \
            --filters Name=vpc-id,Values=${VPC_ID} \
                      Name=group-name,Values=${name} \
-                     Name=tag:KubernetesCluster,Values=${CLUSTER_ID} \
+                     #Name=tag:KubernetesCluster,Values=${CLUSTER_ID} \
            --query SecurityGroups[].GroupId \
 | tr "\t" "\n"
 }
@@ -212,7 +213,7 @@ local query=$1
 $AWS_CMD describe-instances \
            --filters Name=instance-state-name,Values=running \
                      Name=vpc-id,Values=${VPC_ID} \
-                     Name=tag:KubernetesCluster,Values=${CLUSTER_ID} \
+                     #Name=tag:KubernetesCluster,Values=${CLUSTER_ID} \
                      Name=tag:aws:autoscaling:groupName,Values=${ASG_NAME} \
                      Name=tag:Role,Values=${NODE_TAG} \
            --query ${query}
@@ -399,7 +400,7 @@ fi
     MASTER_DISK_ID=`$AWS_CMD describe-volumes \
                              --filters ${zone_filter} \
                                        Name=tag:Name,Values=${name} \
-                                       Name=tag:KubernetesCluster,Values=${CLUSTER_ID} \
+                           Name=tag:KubernetesCluster,Values=${CLUSTER_ID} \
                              --query Volumes[].VolumeId`
 fi
 }
@@ -780,14 +781,14 @@ function vpc-setup {
   if [[ -z "${VPC_ID:-}" ]]; then
     VPC_ID=$(get_vpc_id)
   fi
-  if [[ -z "$VPC_ID" ]]; then
-	  echo "Creating vpc."
-	  VPC_ID=$($AWS_CMD create-vpc --cidr-block ${VPC_CIDR} --query Vpc.VpcId)
-	  $AWS_CMD modify-vpc-attribute --vpc-id $VPC_ID --enable-dns-support '{"Value": true}' > $LOG
-	  $AWS_CMD modify-vpc-attribute --vpc-id $VPC_ID --enable-dns-hostnames '{"Value": true}' > $LOG
-	  add-tag $VPC_ID Name ${VPC_NAME}
-	  add-tag $VPC_ID KubernetesCluster ${CLUSTER_ID}
-  fi
+  #if [[ -z "$VPC_ID" ]]; then
+#	  echo "Creating vpc."
+#	  VPC_ID=$($AWS_CMD create-vpc --cidr-block ${VPC_CIDR} --query Vpc.VpcId)
+#	  $AWS_CMD modify-vpc-attribute --vpc-id $VPC_ID --enable-dns-support '{"Value": true}' > $LOG
+#	  $AWS_CMD modify-vpc-attribute --vpc-id $VPC_ID --enable-dns-hostnames '{"Value": true}' > $LOG
+#	  add-tag $VPC_ID Name ${VPC_NAME}
+#	  add-tag $VPC_ID KubernetesCluster ${CLUSTER_ID}
+ # fi
 
   echo "Using VPC $VPC_ID"
 }
@@ -844,7 +845,7 @@ function kube-up {
 
   subnet-setup
 
-  IGW_ID=$(get_igw_id $VPC_ID)
+  IGW_ID=igw-4ce78529
   if [[ -z "$IGW_ID" ]]; then
 	  echo "Creating Internet Gateway."
 	  IGW_ID=$($AWS_CMD create-internet-gateway --query InternetGateway.InternetGatewayId)

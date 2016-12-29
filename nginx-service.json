@@ -1,0 +1,22 @@
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "nginxplus",
+    "labels": {
+      "app": "nginxplus"
+    }
+  },
+  "spec": {
+    "ports": [
+      {
+        "port": 80,
+        "targetPort": "http"
+      }
+    ],
+    "selector": {
+      "app": "nginxplus"
+    },
+	"type": "LoadBalancer"
+  }
+}

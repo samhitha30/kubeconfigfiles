@@ -1,0 +1,21 @@
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "merchantapp",
+    "labels": {
+      "app": "merchantapp"
+    }
+  },
+  "spec": {
+    "ports": [
+      {
+        "port": 9000,
+        "targetPort": "merchantport"
+      }
+    ],
+    "selector": {
+      "app": "merchantapp"
+    }
+  }
+}

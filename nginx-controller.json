@@ -28,11 +28,6 @@
                 "name": "http",
                 "containerPort": 80,
                 "hostPort": 80
-              },
-              {
-                "name": "http-alt",
-                "containerPort": 8080,
-                "hostPort": 8080
               }
             ],
             "volumeMounts": [
